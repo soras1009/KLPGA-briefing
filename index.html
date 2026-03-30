@@ -235,7 +235,8 @@
 </div>
 
 <script>
-  const players = [];
+  const DEFAULT_PLAYERS = ['고지우','고지원','김민주','마다솜','박보겸','서교림','이세희','이재윤','전예성','최가빈','홍진영','송지아','정지현'];
+  const players = [...DEFAULT_PLAYERS];
   let kakaoContent = '';
 
   const pinput = document.getElementById('pinput');
@@ -344,6 +345,9 @@
       ? `<div class="spinner"></div>${msg}`
       : msg;
   }
+
+  // 기본 선수 명단 바로 표시
+  renderTags();
 </script>
 </body>
 </html>
