@@ -1,0 +1,6 @@
+{
+  "name": "klpga-briefing",
+  "version": "1.0.0",
+  "description": "KLPGA 소속선수 경기결과 브리핑 앱",
+  "private": true
+}

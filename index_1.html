@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>⛳ KLPGA 소속선수 브리핑</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f9f8f5;
+      --surface: #ffffff;
+      --border: #e4e2da;
+      --border-strong: #c8c5bb;
+      --text: #1a1a1a;
+      --text-muted: #6b6860;
+      --text-hint: #9d9b94;
+      --accent: #1a1a1a;
+      --accent-fg: #ffffff;
+      --tag-bg: #f0ede6;
+      --pre-bg: #f4f2ec;
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2.5rem 1rem 4rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 560px;
+    }
+
+    .header { margin-bottom: 2rem; }
+    .header h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+    .header p { font-size: 13px; color: var(--text-muted); }
+
+    .section { margin-bottom: 1.5rem; }
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 8px;
+    }
+
+    .input-row { display: flex; gap: 8px; }
+    input[type="text"], input[type="date"] {
+      flex: 1;
+      height: 40px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus { border-color: var(--border-strong); }
+
+    .btn {
+      height: 40px;
+      padding: 0 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity .15s, background .15s;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+    .btn-outline {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+    }
+    .btn-outline:hover { background: var(--tag-bg); }
+    .btn-primary {
+      border: none;
+      background: var(--accent);
+      color: var(--accent-fg);
+    }
+    .btn-primary:hover { opacity: .85; }
+    .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+      min-height: 16px;
+    }
+    .tag {
+      background: var(--tag-bg);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tag-x {
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1;
+    }
+    .tag-x:hover { color: var(--text); }
+
+    .hint { font-size: 13px; color: var(--text-hint); font-style: italic; }
+
+    hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+
+    .date-row { display: flex; gap: 8px; }
+
+    .status {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin: 1rem 0;
+      min-height: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .result { display: none; }
+    .result-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 10px;
+    }
+    .result-box {
+      background: var(--pre-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.25rem;
+      margin-bottom: 10px;
+    }
+    .result-box pre {
+      font-size: 13px;
+      line-height: 2;
+      white-space: pre-wrap;
+      font-family: inherit;
+      color: var(--text);
+    }
+
+    .btn-copy {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      height: 36px;
+      padding: 0 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-copy:hover { background: var(--tag-bg); }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid var(--border);
+      border-top-color: var(--text);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 480px) {
+      .card { padding: 1.5rem 1.25rem; }
+      .date-row { flex-direction: column; }
+      .date-row .btn-primary { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <h1>⛳ KLPGA 소속선수 브리핑</h1>
+    <p>소속 선수를 등록하고 날짜를 선택하면 경기 결과를 요약합니다</p>
+  </div>
+
+  <div class="section">
+    <div class="section-label">소속 선수 등록</div>
+    <div class="input-row">
+      <input type="text" id="pinput" placeholder="선수 이름 (예: 김세영)" />
+      <button class="btn btn-outline" id="addBtn">+ 추가</button>
+    </div>
+    <div class="tags" id="tags">
+      <span class="hint">등록된 선수가 없습니다</span>
+    </div>
+  </div>
+
+  <hr />
+
+  <div class="section">
+    <div class="section-label">조회 날짜</div>
+    <div class="date-row">
+      <input type="date" id="dateInput" />
+      <button class="btn btn-primary" id="fetchBtn">결과 가져오기</button>
+    </div>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <div class="result" id="result">
+    <div class="result-label">카카오톡 공유용 텍스트</div>
+    <div class="result-box">
+      <pre id="kakaoText"></pre>
+    </div>
+    <button class="btn-copy" id="copyBtn">📋 클립보드에 복사</button>
+  </div>
+</div>
+
+<script>
+  const players = [];
+  let kakaoContent = '';
+
+  const pinput = document.getElementById('pinput');
+  const addBtn = document.getElementById('addBtn');
+  const tagsEl = document.getElementById('tags');
+  const dateInput = document.getElementById('dateInput');
+  const fetchBtn = document.getElementById('fetchBtn');
+  const statusEl = document.getElementById('status');
+  const resultEl = document.getElementById('result');
+  const kakaoTextEl = document.getElementById('kakaoText');
+  const copyBtn = document.getElementById('copyBtn');
+
+  // 오늘 날짜 기본값
+  const t = new Date();
+  dateInput.value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+
+  function renderTags() {
+    if (players.length === 0) {
+      tagsEl.innerHTML = '<span class="hint">등록된 선수가 없습니다</span>';
+      return;
+    }
+    tagsEl.innerHTML = players.map((p, i) =>
+      `<span class="tag">${p}<span class="tag-x" data-i="${i}">×</span></span>`
+    ).join('');
+    tagsEl.querySelectorAll('.tag-x').forEach(el => {
+      el.addEventListener('click', () => {
+        players.splice(parseInt(el.getAttribute('data-i')), 1);
+        renderTags();
+      });
+    });
+  }
+
+  function addPlayer() {
+    const n = pinput.value.trim();
+    if (!n) return;
+    if (!players.includes(n)) players.push(n);
+    pinput.value = '';
+    renderTags();
+  }
+
+  addBtn.addEventListener('click', addPlayer);
+  pinput.addEventListener('keydown', e => { if (e.key === 'Enter') addPlayer(); });
+
+  fetchBtn.addEventListener('click', async () => {
+    if (players.length === 0) { setStatus('선수를 먼저 등록해주세요.'); return; }
+    const dv = dateInput.value;
+    if (!dv) { setStatus('날짜를 선택해주세요.'); return; }
+
+    const [y, m, d] = dv.split('-');
+    const dateLabel = `${y}년 ${parseInt(m)}월 ${parseInt(d)}일`;
+
+    fetchBtn.disabled = true;
+    resultEl.style.display = 'none';
+    setStatus('검색 중...', true);
+
+    try {
+      const res = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ players, dateLabel })
+      });
+
+      const data = await res.json();
+
+      if (!data.found) {
+        setStatus(data.reason || '경기 정보를 찾지 못했습니다.');
+        fetchBtn.disabled = false;
+        return;
+      }
+
+      const lines = data.players.map(p =>
+        `${p.name}  ${p.rank}  ${p.score}${p.note ? '  (' + p.note + ')' : ''}`
+      ).join('\n');
+
+      kakaoContent =
+        `⛳ KLPGA 소속선수 브리핑\n` +
+        `━━━━━━━━━━━━━━━━\n` +
+        `📍 ${data.tournament}\n` +
+        `📅 ${data.date}  |  ${data.round}\n\n` +
+        `👤 소속 선수 결과\n` +
+        lines + '\n\n' +
+        `📌 ${data.highlight}\n` +
+        `━━━━━━━━━━━━━━━━\n` +
+        `#KLPGA #삼천리 #골프브리핑`;
+
+      kakaoTextEl.textContent = kakaoContent;
+      resultEl.style.display = 'block';
+      setStatus(`✓ ${data.tournament} 결과를 불러왔습니다.`);
+    } catch (err) {
+      setStatus('오류가 발생했습니다: ' + err.message);
+    }
+
+    fetchBtn.disabled = false;
+  });
+
+  copyBtn.addEventListener('click', () => {
+    if (!kakaoContent) return;
+    navigator.clipboard.writeText(kakaoContent).then(() => {
+      copyBtn.textContent = '✓ 복사됨!';
+      setTimeout(() => { copyBtn.innerHTML = '📋 클립보드에 복사'; }, 2000);
+    });
+  });
+
+  function setStatus(msg, loading = false) {
+    statusEl.innerHTML = loading
+      ? `<div class="spinner"></div>${msg}`
+      : msg;
+  }
+</script>
+</body>
+</html>
