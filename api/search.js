@@ -38,17 +38,56 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
+    // 응답 구조 안전하게 처리
     let allText = '';
-    for (const block of data.content) {
-      if (block.type === 'text' && block.text) allText += block.text;
+    const content = data.content || data.messages || [];
+
+    if (Array.isArray(content)) {
+      for (const block of content) {
+        if (block.type === 'text' && block.text) {
+          allText += block.text;
+        }
+        // tool_result 블록 안의 텍스트도 추출
+        if (block.type === 'tool_result' && Array.isArray(block.content)) {
+          for (const inner of block.content) {
+            if (inner.type === 'text' && inner.text) allText += inner.text;
+          }
+        }
+      }
+    } else if (typeof data === 'object') {
+      allText = JSON.stringify(data);
     }
 
-    const jsonMatch = allText.match(/\{[\s\S]*\}/);
+    if (!allText) {
+      return res.status(200).json({ found: false, reason: 'API 응답이 비어있습니다.' });
+    }
+
+    const jsonMatch = allText.match(/\{[\s\S]*?\}/g);
     if (!jsonMatch) {
       return res.status(200).json({ found: false, reason: '경기 정보를 파싱하지 못했습니다.' });
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    // JSON 블록 중 found 키가 있는 것 찾기
+    let parsed = null;
+    for (const candidate of jsonMatch.reverse()) {
+      try {
+        const obj = JSON.parse(candidate);
+        if ('found' in obj) { parsed = obj; break; }
+      } catch (e) {}
+    }
+
+    if (!parsed) {
+      // 전체 텍스트에서 가장 긴 JSON 시도
+      try {
+        const bigMatch = allText.match(/\{[\s\S]*\}/);
+        if (bigMatch) parsed = JSON.parse(bigMatch[0]);
+      } catch (e) {}
+    }
+
+    if (!parsed) {
+      return res.status(200).json({ found: false, reason: '결과를 파싱하지 못했습니다.' });
+    }
+
     return res.status(200).json(parsed);
 
   } catch (err) {
