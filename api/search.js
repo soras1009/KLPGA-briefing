@@ -13,6 +13,9 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('[1] API 호출 - 선수:', players.join(', '), '날짜:', dateLabel);
+    console.log('[2] API 키 존재:', !!process.env.ANTHROPIC_API_KEY);
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -23,75 +26,49 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
+        max_tokens: 2000,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-        system: `KLPGA 골프 경기 결과 전문가. 웹 검색으로 해당 날짜 기준 가장 최근 KLPGA 경기에서 지정 선수들의 결과를 찾아라.
-반드시 아래 JSON 형식만 출력하라. 다른 텍스트 절대 금지.
+        tool_choice: { type: 'auto' },
+        system: `너는 KLPGA 골프 경기 결과를 검색하고 요약하는 전문가야.
+웹 검색을 사용해서 주어진 날짜 기준 가장 최근 KLPGA 투어 경기 결과를 찾아라.
+그리고 지정된 선수들의 순위와 스코어를 찾아라.
+마지막에 반드시 아래 JSON 형식으로만 답해라. 다른 텍스트 없이 JSON만.
 {"found":true,"tournament":"대회명","round":"라운드","date":"날짜","players":[{"name":"선수명","rank":"순위","score":"스코어","note":""}],"highlight":"한줄요약"}
-못찾으면: {"found":false,"reason":"이유"}`,
+경기 정보를 못 찾으면: {"found":false,"reason":"이유"}`,
         messages: [{
           role: 'user',
-          content: `${dateLabel} 기준 최근 KLPGA 경기에서 다음 선수 결과를 JSON으로만 반환: ${players.join(', ')}`
+          content: `${dateLabel} 기준 가장 최근 KLPGA 투어 경기에서 다음 선수들의 결과를 찾아줘: ${players.join(', ')}`
         }]
       })
     });
 
+    console.log('[3] HTTP 상태:', response.status);
     const data = await response.json();
+    console.log('[4] stop_reason:', data.stop_reason);
+    console.log('[5] content 수:', data.content?.length);
+    console.log('[6] 전체응답(500자):', JSON.stringify(data).substring(0, 500));
 
-    // 응답 구조 안전하게 처리
     let allText = '';
-    const content = data.content || data.messages || [];
-
-    if (Array.isArray(content)) {
-      for (const block of content) {
-        if (block.type === 'text' && block.text) {
-          allText += block.text;
-        }
-        // tool_result 블록 안의 텍스트도 추출
-        if (block.type === 'tool_result' && Array.isArray(block.content)) {
-          for (const inner of block.content) {
-            if (inner.type === 'text' && inner.text) allText += inner.text;
-          }
-        }
-      }
-    } else if (typeof data === 'object') {
-      allText = JSON.stringify(data);
+    for (const block of (data.content || [])) {
+      if (block.type === 'text' && block.text) allText += block.text;
     }
+
+    console.log('[7] 추출텍스트:', allText.substring(0, 300));
 
     if (!allText) {
-      return res.status(200).json({ found: false, reason: 'API 응답이 비어있습니다.' });
+      return res.status(200).json({ found: false, reason: `응답 없음. stop_reason=${data.stop_reason}, error=${JSON.stringify(data.error)}` });
     }
 
-    const jsonMatch = allText.match(/\{[\s\S]*?\}/g);
-    if (!jsonMatch) {
-      return res.status(200).json({ found: false, reason: '경기 정보를 파싱하지 못했습니다.' });
+    const bigMatch = allText.match(/\{[\s\S]*\}/);
+    if (!bigMatch) {
+      return res.status(200).json({ found: false, reason: '파싱실패. 텍스트: ' + allText.substring(0, 100) });
     }
 
-    // JSON 블록 중 found 키가 있는 것 찾기
-    let parsed = null;
-    for (const candidate of jsonMatch.reverse()) {
-      try {
-        const obj = JSON.parse(candidate);
-        if ('found' in obj) { parsed = obj; break; }
-      } catch (e) {}
-    }
-
-    if (!parsed) {
-      // 전체 텍스트에서 가장 긴 JSON 시도
-      try {
-        const bigMatch = allText.match(/\{[\s\S]*\}/);
-        if (bigMatch) parsed = JSON.parse(bigMatch[0]);
-      } catch (e) {}
-    }
-
-    if (!parsed) {
-      return res.status(200).json({ found: false, reason: '결과를 파싱하지 못했습니다.' });
-    }
-
+    const parsed = JSON.parse(bigMatch[0]);
     return res.status(200).json(parsed);
 
   } catch (err) {
-    console.error(err);
+    console.error('[catch]', err);
     return res.status(500).json({ error: err.message });
   }
 }
